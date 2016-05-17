@@ -27,8 +27,7 @@ $> cordova plugin add https://github.com/phonegap-googlemaps-plugin/cordova-plug
 If you re-install the plugin, please always remove the plugin first, then remove the SDK
 
 ```bash
-$> cordova plugin rm plugin.google.maps #before 1.4.0
-$> cordova plugin rm cordova-plugin-googlemaps #since 1.4+
+$> cordova plugin rm plugin.google.maps
 $> cordova plugin rm com.googlemaps.ios
 $> cordova plugin add cordova-plugin-googlemaps --variable API_KEY_FOR_ANDROID="YOUR_ANDROID_API_KEY_IS_HERE" --variable API_KEY_FOR_IOS="YOUR_IOS_API_KEY_IS_HERE"
 ```
@@ -40,7 +39,7 @@ Cordova-iOS 4.X and WKWebView are supported from version 1.4+. There is currentl
 
 ###Last release information
 
-**v.1.3.9 - 04/Jan/2016**
+**v.1.3.9 - 04/01/2016**
 Happy new year!
 - Fixed a few bugs with Crosswalk, White-Screen Problems.
 - Added "maxAddressLines" for Geocoder (Android, iOS  had it already). Check "lines" inside of the extras array.
@@ -50,7 +49,7 @@ Please check the new [Tutorial for Crosswalk](https://github.com/phonegap-google
 
 I recommend to set settings for Crosswalk to 15+ and remove android-platform (`cordova platform rm android`) and re-install it. No patches required anymore to run with crosswalk. It also has some nice performance boosts, as setting translucent isn't required anymore. (in my test-cases)
 
-**v.1.3.6 - 07/Dec/2015**
+**v.1.3.6 - 07/12/2015**
 - Fixed some small bugs
 - Updated Google Maps SDK for iOS to 1.11.0
  - Will fix some bugs on iOS 9

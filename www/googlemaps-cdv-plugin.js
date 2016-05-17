@@ -1053,10 +1053,6 @@ App.prototype.addMarker = function(markerOptions, callback) {
         markerOptions.icon = HTMLColor2RGBA(markerOptions.icon);
     }
 
-
-    var markerClick = markerOptions.markerClick;
-    var infoClick = markerOptions.infoClick;
-
     cordova.exec(function(result) {
         markerOptions.hashCode = result.hashCode;
         var marker = new Marker(self, result.id, markerOptions);
@@ -1064,11 +1060,11 @@ App.prototype.addMarker = function(markerOptions, callback) {
         MARKERS[result.id] = marker;
         OVERLAYS[result.id] = marker;
 
-        if (typeof markerClick === "function") {
-            marker.on(plugin.google.maps.event.MARKER_CLICK, markerClick);
+        if (typeof markerOptions.markerClick === "function") {
+            marker.on(plugin.google.maps.event.MARKER_CLICK, markerOptions.markerClick);
         }
-        if (typeof infoClick === "function") {
-            marker.on(plugin.google.maps.event.INFO_CLICK, infoClick);
+        if (typeof markerOptions.infoClick === "function") {
+            marker.on(plugin.google.maps.event.INFO_CLICK, markerOptions.infoClick);
         }
         if (typeof callback === "function") {
             callback.call(self, marker, self);
@@ -1136,14 +1132,6 @@ App.prototype.addPolygon = function(polygonOptions, callback) {
     if (polygonOptions.holes.length > 0 && !Array.isArray(polygonOptions.holes[0])) {
       polygonOptions.holes = [polygonOptions.holes];
     }
-    polygonOptions.holes = polygonOptions.holes.map(function(hole) {
-      if (!Array.isArray(hole)) {
-        return [];
-      }
-      return hole.map(function(latLng) {
-        return {lat: latLng.lat, lng: latLng.lng};
-      });
-    });
     polygonOptions.strokeColor = HTMLColor2RGBA(polygonOptions.strokeColor || "#FF000080", 0.75);
     if (polygonOptions.fillColor) {
         polygonOptions.fillColor = HTMLColor2RGBA(polygonOptions.fillColor, 0.75);
@@ -1152,6 +1140,7 @@ App.prototype.addPolygon = function(polygonOptions, callback) {
     polygonOptions.visible = polygonOptions.visible === undefined ? true : polygonOptions.visible;
     polygonOptions.zIndex = polygonOptions.zIndex || 2;
     polygonOptions.geodesic = polygonOptions.geodesic  === true;
+    polygonOptions.addHole = polygonOptions.addHole || [];
 
     cordova.exec(function(result) {
         var polygon = new Polygon(self, result.id, polygonOptions);
@@ -1760,25 +1749,6 @@ Polygon.prototype.setPoints = function(points) {
 };
 Polygon.prototype.getPoints = function() {
     return this.get("points");
-};
-Polygon.prototype.setHoles = function(holes) {
-    this.set('holes', holes);
-    holes = holes || [];
-    if (holes.length > 0 && !Array.isArray(holes[0])) {
-      holes = [holes];
-    }
-    holes = holes.map(function(hole) {
-      if (!Array.isArray(hole)) {
-        return [];
-      }
-      return hole.map(function(latLng) {
-        return {lat: latLng.lat, lng: latLng.lng};
-      });
-    });
-    cordova.exec(null, this.errorHandler, PLUGIN_NAME, 'exec', ['Polygon.setHoles', this.getId(), holes]);
-};
-Polygon.prototype.getHoles = function() {
-    return this.get("holes");
 };
 Polygon.prototype.setFillColor = function(color) {
     this.set('fillColor', color);

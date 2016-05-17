@@ -198,6 +198,7 @@ NSDictionary *initOptions;
         self.map.settings.zoomGestures = isEnabled;
       }
     }
+    self.map.settings.allowScrollGesturesDuringRotateOrZoom = NO;
   
     //mapType
     NSString *typeStr = [initOptions valueForKey:@"mapType"];

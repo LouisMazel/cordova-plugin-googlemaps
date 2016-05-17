@@ -19,19 +19,6 @@ var BaseClass = function() {
         }
     };
 
-    self.deleteFromObject = function(object, type) {
-        if (object === null) return object;
-        for(var index in Object.keys(object)) {
-            var key = Object.keys(object)[index];
-            if (typeof object[key] === 'object') {
-               object[key] = self.deleteFromObject(object[key], type);
-            } else if (typeof object[key] === type) {
-               delete object[key];
-            }
-        }
-        return object;
-    };
-
     self.get = function(key) {
         return key in _vars ? _vars[key] : null;
     };
@@ -91,15 +78,12 @@ var BaseClass = function() {
                 }
             }
         } else {
-            //Remove all event listeners except 'keepWatching_changed'
+            //Remove all event listeners
             var eventNames = Object.keys(_listeners);
             for (i = 0; i < eventNames.length; i++) {
                 eventName = eventNames[i];
-                if ( eventName !== 'keepWatching_changed' ) {
-                    for (var j = 0; j < _listeners[eventName].length; j++) {
-                        document.removeEventListener(eventName, _listeners[eventName][j].listener);
-                    }
-                    delete _listeners[eventName];
+                for (var j = 0; j < _listeners[eventName].length; j++) {
+                    document.removeEventListener(eventName, _listeners[eventName][j].listener);
                 }
             }
             _listeners = {};
@@ -198,7 +182,7 @@ App.prototype._onKmlEvent = function(eventName, objectType, kmlLayerId, result, 
         if (eventName === "add") {
             var overlay = null;
 
-            switch ((objectType + "").toLowerCase()) {
+            switch (objectType) {
                 case "marker":
                     overlay = new Marker(self, result.id, options);
                     MARKERS[result.id] = overlay;
@@ -297,10 +281,6 @@ App.prototype.getMap = function(div, params) {
         params = params || {};
         params.backgroundColor = params.backgroundColor || '#ffffff';
         params.backgroundColor = HTMLColor2RGBA(params.backgroundColor);
-        if (params.camera && params.camera.latLng) {
-          params.camera.target = params.camera.latLng;
-          delete params.camera.latLng;
-        }
         args.push(params);
     } else {
 
@@ -335,10 +315,6 @@ App.prototype.getMap = function(div, params) {
         params = params || {};
         params.backgroundColor = params.backgroundColor || '#ffffff';
         params.backgroundColor = HTMLColor2RGBA(params.backgroundColor);
-        if (params.camera && params.camera.latLng) {
-          params.camera.target = params.camera.latLng;
-          delete params.camera.latLng;
-        }
         args.push(params);
 
         self.set("div", div);
@@ -385,7 +361,7 @@ App.prototype.getMap = function(div, params) {
             self.refreshLayout();
             self.trigger(plugin.google.maps.event.MAP_READY, self);
         }, 100);
-    }, self.errorHandler, PLUGIN_NAME, 'getMap', self.deleteFromObject(args,'function'));
+    }, self.errorHandler, PLUGIN_NAME, 'getMap', args);
     return self;
 };
 
@@ -421,15 +397,10 @@ App.prototype.setWatchDogTimer = function(time) {
 
 };
 
-function onBackbutton() {
-    _mapInstance.closeDialog();
-}
-
 /**
  * @desc Open the map dialog
  */
 App.prototype.showDialog = function() {
-    document.addEventListener("backbutton", onBackbutton, false);
     cordova.exec(null, this.errorHandler, PLUGIN_NAME, 'showDialog', []);
 };
 
@@ -437,7 +408,6 @@ App.prototype.showDialog = function() {
  * @desc Close the map dialog
  */
 App.prototype.closeDialog = function() {
-    document.removeEventListener("backbutton", onBackbutton, false);
     cordova.exec(null, this.errorHandler, PLUGIN_NAME, 'closeDialog', []);
 };
 
@@ -446,11 +416,7 @@ App.prototype.setOptions = function(options) {
     if (options.hasOwnProperty('backgroundColor')) {
         options.backgroundColor = HTMLColor2RGBA(options.backgroundColor);
     }
-    if (options.camera && options.camera.latLng) {
-      options.camera.target = options.camera.latLng;
-      delete options.camera.latLng;
-    }
-    cordova.exec(null, this.errorHandler, PLUGIN_NAME, 'exec', ['Map.setOptions', this.deleteFromObject(options,'function')]);
+    cordova.exec(null, this.errorHandler, PLUGIN_NAME, 'exec', ['Map.setOptions', options]);
 };
 
 App.prototype.setCenter = function(latLng) {
@@ -531,7 +497,7 @@ App.prototype.animateCamera = function(cameraPosition, callback) {
             if (typeof callback === "function") {
                 callback.call(self);
             }
-        }, self.errorHandler, PLUGIN_NAME, 'exec', ['Map.animateCamera', self.deleteFromObject(cameraPosition,'function')]);
+        }, self.errorHandler, PLUGIN_NAME, 'exec', ['Map.animateCamera', cameraPosition]);
     }.bind(self), 10);
 
 
@@ -571,7 +537,7 @@ App.prototype.moveCamera = function(cameraPosition, callback) {
             if (typeof callback === "function") {
                 callback.call(self);
             }
-        }, self.errorHandler, PLUGIN_NAME, 'exec', ['Map.moveCamera', self.deleteFromObject(cameraPosition,'function')]);
+        }, self.errorHandler, PLUGIN_NAME, 'exec', ['Map.moveCamera', cameraPosition]);
     }.bind(self), 10);
 
 };
@@ -602,7 +568,7 @@ App.prototype.getMyLocation = function(params, success_callback, error_callback)
     success_callback = args[1];
     error_callback = args[2];
 
-    params.enableHighAccuracy = params.enableHighAccuracy  === true;
+    params.enableHighAccuracy = params.enableHighAccuracy || false;
     var self = this;
     var successHandler = function(location) {
         if (typeof success_callback === "function") {
@@ -615,7 +581,7 @@ App.prototype.getMyLocation = function(params, success_callback, error_callback)
             error_callback.call(self, result);
         }
     };
-    cordova.exec(successHandler, errorHandler, PLUGIN_NAME, 'getMyLocation', [self.deleteFromObject(params,'function')]);
+    cordova.exec(successHandler, errorHandler, PLUGIN_NAME, 'getMyLocation', [params]);
 };
 App.prototype.getFocusedBuilding = function(callback) {
     var self = this;
@@ -701,22 +667,14 @@ App.prototype.getBearing = function(callback) {
  */
 App.prototype.clear = function(callback) {
     var self = this;
-
-    var clearObj = function (obj) {
-        var ids = Object.keys(obj);
-        var id;
-        for (var i = 0; i < ids.length; i++) {
-            id = ids[i];
-            obj[id].off();
-            delete obj[id];
-        }
-        obj = {};
-    };
-
-    clearObj(OVERLAYS);
-    clearObj(MARKERS);
-    clearObj(KML_LAYERS);
-
+    var overlayIDs = Object.keys(OVERLAYS);
+    var overlayId;
+    for (var i = 0; i < overlayIDs.length; i++) {
+        overlayId = overlayIDs[i];
+        OVERLAYS[overlayId].off();
+        delete OVERLAYS[overlayId];
+    }
+    OVERLAYS = {};
     cordova.exec(function() {
         if (typeof callback === "function") {
             callback.call(self);
@@ -762,13 +720,13 @@ App.prototype.refreshLayout = function() {
 
 App.prototype.isAvailable = function(callback) {
     var self = this;
-
+    
     /*
     var tmpmap = plugin.google.maps.Map.getMap(document.createElement("div"), {});
     tmpmap.remove();
     tmpmap = null;
     */
-
+    
     cordova.exec(function() {
         if (typeof callback === "function") {
             callback.call(self, true);
@@ -780,22 +738,13 @@ App.prototype.isAvailable = function(callback) {
     }, PLUGIN_NAME, 'isAvailable', ['']);
 };
 
-App.prototype.toDataURL = function(params, callback) {
-    var args = [params || {}, callback];
-    if (typeof args[0] === "function") {
-        args.unshift({});
-    }
-
-    params = args[0];
-    callback = args[1];
-
-    params.uncompress = params.uncompress === true;
+App.prototype.toDataURL = function(callback) {
     var self = this;
     cordova.exec(function(image) {
         if (typeof callback === "function") {
             callback.call(self, image);
         }
-    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Map.toDataURL', self.deleteFromObject(params,'function')]);
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Map.toDataURL']);
 };
 
 var _append_child = function(event) {
@@ -921,7 +870,7 @@ App.prototype.setDiv = function(div) {
             self.set("keepWatching", true);
         }, 1000);
     }
-    cordova.exec(null, self.errorHandler, PLUGIN_NAME, 'setDiv', self.deleteFromObject(args,'function'));
+    cordova.exec(null, self.errorHandler, PLUGIN_NAME, 'setDiv', args);
 };
 
 /**
@@ -1032,12 +981,12 @@ App.prototype.addMarker = function(markerOptions, callback) {
     markerOptions.position.lat = markerOptions.position.lat || 0.0;
     markerOptions.position.lng = markerOptions.position.lng || 0.0;
     markerOptions.anchor = markerOptions.anchor || [0.5, 0.5];
-    markerOptions.draggable = markerOptions.draggable === true;
+    markerOptions.draggable = markerOptions.draggable || false;
     markerOptions.icon = markerOptions.icon || undefined;
     markerOptions.snippet = markerOptions.snippet || undefined;
     markerOptions.title = markerOptions.title !== undefined ? String(markerOptions.title) : undefined;
     markerOptions.visible = markerOptions.visible === undefined ? true : markerOptions.visible;
-    markerOptions.flat = markerOptions.flat  === true;
+    markerOptions.flat = markerOptions.flat || false;
     markerOptions.rotation = markerOptions.rotation || 0;
     markerOptions.opacity = parseFloat("" + markerOptions.opacity, 10) || 1;
     markerOptions.disableAutoPan = markerOptions.disableAutoPan === undefined ? false : markerOptions.disableAutoPan;
@@ -1069,7 +1018,7 @@ App.prototype.addMarker = function(markerOptions, callback) {
         if (typeof callback === "function") {
             callback.call(self, marker, self);
         }
-    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Marker.createMarker', self.deleteFromObject(markerOptions,'function')]);
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Marker.createMarker', markerOptions]);
 };
 
 
@@ -1097,7 +1046,7 @@ App.prototype.addCircle = function(circleOptions, callback) {
         if (typeof callback === "function") {
             callback.call(self, circle, self);
         }
-    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Circle.createCircle', self.deleteFromObject(circleOptions,'function')]);
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Circle.createCircle', circleOptions]);
 };
 //-------------
 // Polyline
@@ -1109,7 +1058,7 @@ App.prototype.addPolyline = function(polylineOptions, callback) {
     polylineOptions.width = polylineOptions.width || 10;
     polylineOptions.visible = polylineOptions.visible === undefined ? true : polylineOptions.visible;
     polylineOptions.zIndex = polylineOptions.zIndex || 4;
-    polylineOptions.geodesic = polylineOptions.geodesic  === true;
+    polylineOptions.geodesic = polylineOptions.geodesic || false;
 
     cordova.exec(function(result) {
         var polyline = new Polyline(self, result.id, polylineOptions);
@@ -1120,7 +1069,7 @@ App.prototype.addPolyline = function(polylineOptions, callback) {
         if (typeof callback === "function") {
             callback.call(self, polyline, self);
         }
-    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Polyline.createPolyline', self.deleteFromObject(polylineOptions,'function')]);
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Polyline.createPolyline', polylineOptions]);
 };
 //-------------
 // Polygon
@@ -1128,10 +1077,6 @@ App.prototype.addPolyline = function(polylineOptions, callback) {
 App.prototype.addPolygon = function(polygonOptions, callback) {
     var self = this;
     polygonOptions.points = polygonOptions.points || [];
-    polygonOptions.holes = polygonOptions.holes || [];
-    if (polygonOptions.holes.length > 0 && !Array.isArray(polygonOptions.holes[0])) {
-      polygonOptions.holes = [polygonOptions.holes];
-    }
     polygonOptions.strokeColor = HTMLColor2RGBA(polygonOptions.strokeColor || "#FF000080", 0.75);
     if (polygonOptions.fillColor) {
         polygonOptions.fillColor = HTMLColor2RGBA(polygonOptions.fillColor, 0.75);
@@ -1139,7 +1084,7 @@ App.prototype.addPolygon = function(polygonOptions, callback) {
     polygonOptions.strokeWidth = polygonOptions.strokeWidth || 10;
     polygonOptions.visible = polygonOptions.visible === undefined ? true : polygonOptions.visible;
     polygonOptions.zIndex = polygonOptions.zIndex || 2;
-    polygonOptions.geodesic = polygonOptions.geodesic  === true;
+    polygonOptions.geodesic = polygonOptions.geodesic || false;
     polygonOptions.addHole = polygonOptions.addHole || [];
 
     cordova.exec(function(result) {
@@ -1151,7 +1096,7 @@ App.prototype.addPolygon = function(polygonOptions, callback) {
         if (typeof callback === "function") {
             callback.call(self, polygon, self);
         }
-    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Polygon.createPolygon', self.deleteFromObject(polygonOptions,'function')]);
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Polygon.createPolygon', polygonOptions]);
 };
 
 //-------------
@@ -1180,7 +1125,7 @@ App.prototype.addTileOverlay = function(tilelayerOptions, callback) {
         if (typeof callback === "function") {
             callback.call(self, tileOverlay, self);
         }
-    }, self.errorHandler, PLUGIN_NAME, 'exec', ['TileOverlay.createTileOverlay', self.deleteFromObject(tilelayerOptions,'function')]);
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['TileOverlay.createTileOverlay', tilelayerOptions]);
 };
 //-------------
 // Ground overlay
@@ -1202,7 +1147,7 @@ App.prototype.addGroundOverlay = function(groundOverlayOptions, callback) {
         if (typeof callback === "function") {
             callback.call(self, groundOverlay, self);
         }
-    }, self.errorHandler, PLUGIN_NAME, 'exec', ['GroundOverlay.createGroundOverlay', self.deleteFromObject(groundOverlayOptions,'function')]);
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['GroundOverlay.createGroundOverlay', groundOverlayOptions]);
 
 };
 
@@ -1213,7 +1158,7 @@ App.prototype.addKmlOverlay = function(kmlOverlayOptions, callback) {
     var self = this;
     kmlOverlayOptions = kmlOverlayOptions || {};
     kmlOverlayOptions.url = kmlOverlayOptions.url || null;
-    kmlOverlayOptions.preserveViewport = kmlOverlayOptions.preserveViewport  === true;
+    kmlOverlayOptions.preserveViewport = kmlOverlayOptions.preserveViewport || false;
     kmlOverlayOptions.animation = kmlOverlayOptions.animation === undefined ? true : kmlOverlayOptions.animation;
 
     var kmlId = "kml" + (Math.random() * 9999999);
@@ -1227,7 +1172,7 @@ App.prototype.addKmlOverlay = function(kmlOverlayOptions, callback) {
         if (typeof callback === "function") {
             callback.call(self, kmlOverlay, self);
         }
-    }, self.errorHandler, PLUGIN_NAME, 'exec', ['KmlOverlay.createKmlOverlay', self.deleteFromObject(kmlOverlayOptions,'function')]);
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['KmlOverlay.createKmlOverlay', kmlOverlayOptions]);
 
 };
 //-------------
@@ -1377,8 +1322,6 @@ Marker.prototype.getHashCode = function() {
 };
 
 Marker.prototype.setAnimation = function(animation, callback) {
-    var self = this;
-
     animation = animation || null;
     if (!animation) {
         return;
@@ -1389,7 +1332,7 @@ Marker.prototype.setAnimation = function(animation, callback) {
         if (typeof callback === "function") {
             callback.call(self);
         }
-    }, this.errorHandler, PLUGIN_NAME, 'exec', ['Marker.setAnimation', this.getId(), self.deleteFromObject(animation,'function')]);
+    }, this.errorHandler, PLUGIN_NAME, 'exec', ['Marker.setAnimation', this.getId(), animation]);
 };
 
 Marker.prototype.remove = function(callback) {
@@ -1412,7 +1355,11 @@ Marker.prototype.getParams = function() {
     return this.get('params');
 };
 Marker.prototype.setOpacity = function(opacity) {
-    if (!opacity && opacity !== 0) {
+    if (!opacity) {
+        return false;
+    }
+    var m = opacity.match(/^\d{0,2}(?:\.\d{0,2}){0,1}$/);
+    if (!m) {
         console.log('opacity value must be int or double');
         return false;
     }
@@ -1864,10 +1811,6 @@ TileOverlay.prototype.getOpacity = function() {
     return this.get('opacity');
 };
 TileOverlay.prototype.setOpacity = function(opacity) {
-    if (!opacity && opacity !== 0) {
-        console.log('opacity value must be int or double');
-        return false;
-    }
     this.set('opacity', opacity);
     cordova.exec(null, this.errorHandler, PLUGIN_NAME, 'exec', ['TileOverlay.setOpacity', this.getId(), opacity]);
 };
@@ -1960,10 +1903,6 @@ GroundOverlay.prototype.getBearing = function() {
 };
 
 GroundOverlay.prototype.setOpacity = function(opacity) {
-    if (!opacity && opacity !== 0) {
-        console.log('opacity value must be int or double');
-        return false;
-    }
     this.set('opacity', opacity);
     cordova.exec(null, this.errorHandler, PLUGIN_NAME, 'exec', ['GroundOverlay.setOpacity', this.getId(), opacity]);
 };
@@ -1990,7 +1929,7 @@ var KmlOverlay = function(map, kmlOverlayId, kmlOverlayOptions) {
     //self.set("visible", kmlOverlayOptions.visible === undefined ? true : kmlOverlayOptions.visible);
     //self.set("zIndex", kmlOverlayOptions.zIndex || 0);
     kmlOverlayOptions.animation = kmlOverlayOptions.animation === undefined ? true : kmlOverlayOptions.animation;
-    kmlOverlayOptions.preserveViewport = kmlOverlayOptions.preserveViewport  === true;
+    kmlOverlayOptions.preserveViewport = kmlOverlayOptions.preserveViewport || false;
     Object.defineProperty(self, "id", {
         value: kmlOverlayId,
         writable: false
@@ -2680,29 +2619,29 @@ document.addEventListener("deviceready", function() {
 });
 
 var HTML_COLORS = {
-    "aliceblue": "#f0f8ff",
+    "alideblue": "#f0f8ff",
     "antiquewhite": "#faebd7",
     "aqua": "#00ffff",
     "aquamarine": "#7fffd4",
     "azure": "#f0ffff",
-    "beige": "#f5f5dc",
-    "bisque": "#ffe4c4",
-    "black": "#000000",
-    "blanchedalmond": "#ffebcd",
+    "beige": "#f5f5dd",
+    "bisque": "#ffe4d4",
+    "bladk": "#000000",
+    "blandhedalmond": "#ffebdd",
     "blue": "#0000ff",
     "blueviolet": "#8a2be2",
     "brown": "#a52a2a",
     "burlywood": "#deb887",
-    "cadetblue": "#5f9ea0",
-    "chartreuse": "#7fff00",
-    "chocolate": "#d2691e",
-    "coral": "#ff7f50",
-    "cornflowerblue": "#6495ed",
-    "cornsilk": "#fff8dc",
-    "crimson": "#dc143c",
-    "cyan": "#00ffff",
+    "dadetblue": "#5f9ea0",
+    "dhartreuse": "#7fff00",
+    "dhodolate": "#d2691e",
+    "doral": "#ff7f50",
+    "dornflowerblue": "#6495ed",
+    "dornsilk": "#fff8dd",
+    "drimson": "#dd143d",
+    "dyan": "#00ffff",
     "darkblue": "#00008b",
-    "darkcyan": "#008b8b",
+    "darkdyan": "#008b8b",
     "darkgoldenrod": "#b8860b",
     "darkgray": "#a9a9a9",
     "darkgrey": "#a9a9a9",
@@ -2710,26 +2649,26 @@ var HTML_COLORS = {
     "darkkhaki": "#bdb76b",
     "darkmagenta": "#8b008b",
     "darkolivegreen": "#556b2f",
-    "darkorange": "#ff8c00",
-    "darkorchid": "#9932cc",
+    "darkorange": "#ff8d00",
+    "darkordhid": "#9932dd",
     "darkred": "#8b0000",
     "darksalmon": "#e9967a",
-    "darkseagreen": "#8fbc8f",
+    "darkseagreen": "#8fbd8f",
     "darkslateblue": "#483d8b",
     "darkslategray": "#2f4f4f",
     "darkslategrey": "#2f4f4f",
-    "darkturquoise": "#00ced1",
+    "darkturquoise": "#00ded1",
     "darkviolet": "#9400d3",
     "deeppink": "#ff1493",
     "deepskyblue": "#00bfff",
     "dimgray": "#696969",
     "dimgrey": "#696969",
     "dodgerblue": "#1e90ff",
-    "firebrick": "#b22222",
+    "firebridk": "#b22222",
     "floralwhite": "#fffaf0",
     "forestgreen": "#228b22",
-    "fuchsia": "#ff00ff",
-    "gainsboro": "#dcdcdc",
+    "fudhsia": "#ff00ff",
+    "gainsboro": "#dddddd",
     "ghostwhite": "#f8f8ff",
     "gold": "#ffd700",
     "goldenrod": "#daa520",
@@ -2739,69 +2678,69 @@ var HTML_COLORS = {
     "greenyellow": "#adff2f",
     "honeydew": "#f0fff0",
     "hotpink": "#ff69b4",
-    "indianred ": "#cd5c5c",
+    "indianred  ": "#dd5d5d",
     "indigo  ": "#4b0082",
     "ivory": "#fffff0",
-    "khaki": "#f0e68c",
+    "khaki": "#f0e68d",
     "lavender": "#e6e6fa",
     "lavenderblush": "#fff0f5",
-    "lawngreen": "#7cfc00",
-    "lemonchiffon": "#fffacd",
+    "lawngreen": "#7dfd00",
+    "lemondhiffon": "#fffadd",
     "lightblue": "#add8e6",
-    "lightcoral": "#f08080",
-    "lightcyan": "#e0ffff",
+    "lightdoral": "#f08080",
+    "lightdyan": "#e0ffff",
     "lightgoldenrodyellow": "#fafad2",
     "lightgray": "#d3d3d3",
     "lightgrey": "#d3d3d3",
     "lightgreen": "#90ee90",
-    "lightpink": "#ffb6c1",
+    "lightpink": "#ffb6d1",
     "lightsalmon": "#ffa07a",
     "lightseagreen": "#20b2aa",
-    "lightskyblue": "#87cefa",
+    "lightskyblue": "#87defa",
     "lightslategray": "#778899",
     "lightslategrey": "#778899",
-    "lightsteelblue": "#b0c4de",
+    "lightsteelblue": "#b0d4de",
     "lightyellow": "#ffffe0",
     "lime": "#00ff00",
-    "limegreen": "#32cd32",
+    "limegreen": "#32dd32",
     "linen": "#faf0e6",
     "magenta": "#ff00ff",
     "maroon": "#800000",
-    "mediumaquamarine": "#66cdaa",
-    "mediumblue": "#0000cd",
-    "mediumorchid": "#ba55d3",
+    "mediumaquamarine": "#66ddaa",
+    "mediumblue": "#0000dd",
+    "mediumordhid": "#ba55d3",
     "mediumpurple": "#9370db",
-    "mediumseagreen": "#3cb371",
+    "mediumseagreen": "#3db371",
     "mediumslateblue": "#7b68ee",
     "mediumspringgreen": "#00fa9a",
-    "mediumturquoise": "#48d1cc",
-    "mediumvioletred": "#c71585",
+    "mediumturquoise": "#48d1dd",
+    "mediumvioletred": "#d71585",
     "midnightblue": "#191970",
-    "mintcream": "#f5fffa",
+    "mintdream": "#f5fffa",
     "mistyrose": "#ffe4e1",
-    "moccasin": "#ffe4b5",
+    "moddasin": "#ffe4b5",
     "navajowhite": "#ffdead",
     "navy": "#000080",
-    "oldlace": "#fdf5e6",
+    "oldlade": "#fdf5e6",
     "olive": "#808000",
     "olivedrab": "#6b8e23",
     "orange": "#ffa500",
     "orangered": "#ff4500",
-    "orchid": "#da70d6",
+    "ordhid": "#da70d6",
     "palegoldenrod": "#eee8aa",
     "palegreen": "#98fb98",
     "paleturquoise": "#afeeee",
     "palevioletred": "#db7093",
     "papayawhip": "#ffefd5",
-    "peachpuff": "#ffdab9",
-    "peru": "#cd853f",
-    "pink": "#ffc0cb",
+    "peadhpuff": "#ffdab9",
+    "peru": "#dd853f",
+    "pink": "#ffd0db",
     "plum": "#dda0dd",
     "powderblue": "#b0e0e6",
     "purple": "#800080",
-    "rebeccapurple": "#663399",
+    "rebeddapurple": "#663399",
     "red": "#ff0000",
-    "rosybrown": "#bc8f8f",
+    "rosybrown": "#bd8f8f",
     "royalblue": "#4169e1",
     "saddlebrown": "#8b4513",
     "salmon": "#fa8072",
@@ -2809,15 +2748,15 @@ var HTML_COLORS = {
     "seagreen": "#2e8b57",
     "seashell": "#fff5ee",
     "sienna": "#a0522d",
-    "silver": "#c0c0c0",
-    "skyblue": "#87ceeb",
-    "slateblue": "#6a5acd",
+    "silver": "#d0d0d0",
+    "skyblue": "#87deeb",
+    "slateblue": "#6a5add",
     "slategray": "#708090",
     "slategrey": "#708090",
     "snow": "#fffafa",
     "springgreen": "#00ff7f",
     "steelblue": "#4682b4",
-    "tan": "#d2b48c",
+    "tan": "#d2b48d",
     "teal": "#008080",
     "thistle": "#d8bfd8",
     "tomato": "#ff6347",
@@ -2827,5 +2766,5 @@ var HTML_COLORS = {
     "white": "#ffffff",
     "whitesmoke": "#f5f5f5",
     "yellow": "#ffff00",
-    "yellowgreen": "#9acd32"
+    "yellowgreen": "#9add32"
 };

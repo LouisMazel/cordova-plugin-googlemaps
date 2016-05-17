@@ -8,6 +8,14 @@ Join our online chat at<br>
 [![Gitter](https://badges.gitter.im/cordova-plugin-googlemaps.svg)](https://gitter.im/nightstomp/cordova-plugin-googlemaps)
 
 
+###Donation
+Please consider to make a small donation. We spent many hours to make this a great plugin, we even pay other developers to contribute new functions. In order to keep up the motivation, we ask for your help, too. Thanks!
+
+[![img](https://www.paypalobjects.com/webstatic/en_US/btn/btn_donate_cc_147x47.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=LLCBVUA7TQ8SU)
+
+Before I release the clustering feature, I want to raise a funding of 1000$. I will donate some of the funded money to @limeuwe for donating the code and to my developer for the Android part.
+
+**Currently funded**: 65 $
 
 ###Quick install
 
@@ -34,8 +42,8 @@ $> cordova plugin add cordova-plugin-googlemaps --variable API_KEY_FOR_ANDROID="
 
 The SDK-Plugin won't be uninstalled automatically and you will stuck on an old version.
 
-###Information
-Cordova-iOS 4.X and WKWebView are supported from version 1.4+. There is currently no npm package of 1.4 (work in progress) but if you need this feature, you can grab our master, which is currently considered stable. (We're still fixing bugs, so you might wait until we push 1.4.0 to npm)
+###WARNING
+This plugin is not compatible with Cordova-iOS 4.0.0. WKWebView is not supported. They have been huge changes in the API, and due to lack of time, there is no ETA when this plugin will be compatible. PRs are welcome!!
 
 ###Last release information
 
